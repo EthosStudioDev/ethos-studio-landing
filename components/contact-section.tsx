@@ -59,12 +59,42 @@ export function ContactSection() {
     }
   }, [])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission here
-    console.log("Form submitted:", formData)
-    // Reset form
-    setFormData({ name: "", email: "", message: "" })
+    setIsSubmitting(true)
+    setSubmitStatus(null)
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit form')
+      }
+
+      setSubmitStatus({
+        type: 'success',
+        message: 'Thank you! Your message has been sent successfully.',
+      })
+      setFormData({ name: "", email: "", message: "" })
+    } catch (error) {
+      setSubmitStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to send message. Please try again.',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -129,9 +159,25 @@ export function ContactSection() {
             />
           </div>
 
-          <Button type="submit" size="lg" className="w-full md:w-auto gap-2">
+          {submitStatus && (
+            <div
+              className={`p-4 rounded-md ${
+                submitStatus.type === 'success'
+                  ? 'bg-green-500/10 text-green-500 border border-green-500/20'
+                  : 'bg-red-500/10 text-red-500 border border-red-500/20'
+              }`}
+            >
+              {submitStatus.message}
+            </div>
+          )}
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full md:w-auto gap-2"
+            disabled={isSubmitting}
+          >
             <Send className="w-4 h-4" />
-            Send Message
+            {isSubmitting ? 'Sending...' : 'Send Message'}
           </Button>
         </form>
       </div>
